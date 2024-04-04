@@ -7,6 +7,10 @@ pub enum AIMode {
     Follower, // follows other bots
     Howler, // attracts other bots when spotting
     Patrol, // will pick two points to patrol between
+
+    Overseer, // hovers above the map searching for players above the walls
+
+    Cheating, // knows where the player is
 }
 
 #[derive(Component)]
@@ -25,5 +29,5 @@ impl Plugin for BotPlugin {
 }
 
 fn spawn_bot() {
-    
+
 }

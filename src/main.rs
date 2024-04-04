@@ -1,11 +1,12 @@
 mod player;
 mod bot;
+mod world;
 
 use std::env::set_var;
 use bevy::{input::{common_conditions::input_toggle_active, mouse::MouseMotion}, prelude::*, render::{settings::{PowerPreference, WgpuSettings}, RenderPlugin}, window::PrimaryWindow};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use bevy_rapier3d::{plugin::{NoUserData, RapierPhysicsPlugin}, render::RapierDebugRenderPlugin};
-use rand::Rng;
+use bevy_rapier3d::{dynamics::RigidBody, geometry::{Collider, Restitution}, plugin::{NoUserData, RapierPhysicsPlugin}, render::RapierDebugRenderPlugin};
+use world::Cell;
 
 fn main() {
     // fix for my PC having multiple GPUs
@@ -30,24 +31,22 @@ fn main() {
                 ..Default::default()
             })
         )
-        .add_plugins((player::PlayerPlugin, bot::BotPlugin))
+        .add_plugins((player::PlayerPlugin, bot::BotPlugin, world::WorldGenPlugin))
 
         // https://rapier.rs/docs/user_guides/bevy_plugin/getting_started_bevy/
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(RapierDebugRenderPlugin::default())
-        .insert_resource(Game::default())
-        .add_systems(Startup, create_map)
+
+        .insert_resource(Game{
+            board_size: 50,
+            bot_count: 10,
+            ..Default::default()
+        })
+
         .add_plugins(
             WorldInspectorPlugin::default().run_if(input_toggle_active(true, KeyCode::Escape)),
         )
         .run();
-}
-
-#[derive(Component)]
-struct MapParent;
-
-struct Cell {
-    height: f32
 }
 
 #[derive(Resource, Default)]
@@ -56,37 +55,7 @@ struct Game {
     finish_loc: Vec3,
     start_loc: Vec3,
     bot_count: u8,
-}
-
-const BOARDSIZE: usize = 100;
-
-fn create_map(
-    mut commands: Commands, 
-    mut game: ResMut<Game>, 
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    let mut map_entity = commands.spawn((SpatialBundle::default(), MapParent, Name::new("Map")));
-
-    game.map = (0..BOARDSIZE).map(|x| {
-        (0..BOARDSIZE).map(|y| {
-            let height = rand::thread_rng().gen_range(0.0..1.0);
-
-            map_entity.with_children(|commands| {
-                commands.spawn((
-                    PbrBundle {
-                        transform: Transform::from_xyz(x as f32, height, y as f32),
-                        mesh: meshes.add(Cuboid::new(1.0, 1.0, 1.0)),
-                        material: materials.add(Color::rgb(0.8, 0.7, 0.6)),
-                        ..default()
-                    },
-                    Name::new(format!("Cell {}:{}", x, y))
-                ));
-            });
-            Cell { height }
-        }).collect()
-    }).collect();
-
+    board_size: u8,
 }
 
 fn teardown(mut commands: Commands, entities: Query<Entity, (Without<Camera>, Without<Window>)>) {
