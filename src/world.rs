@@ -1,5 +1,4 @@
-use bevy::{input::{common_conditions::input_toggle_active, mouse::MouseMotion}, prelude::*, render::{settings::{PowerPreference, WgpuSettings}, RenderPlugin}, window::PrimaryWindow};
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_rapier3d::{dynamics::RigidBody, geometry::{Collider, Restitution}, plugin::{NoUserData, RapierPhysicsPlugin}, render::RapierDebugRenderPlugin};
 use rand::Rng;
 
@@ -8,10 +7,10 @@ use crate::Game;
 #[derive(Component)]
 struct MapParent;
 
-
 #[derive(Component)]
 struct MapPhysicsParent;
 
+#[derive(Reflect)]
 pub struct Cell {
     height: f32,
     x: i32,

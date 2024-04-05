@@ -49,7 +49,7 @@ fn main() {
         .run();
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Reflect)]
 struct Game {
     map: Vec<Vec<Cell>>,
     finish_loc: Vec3,
