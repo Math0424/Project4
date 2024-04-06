@@ -26,9 +26,13 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-fn create_player(mut commands: Commands) {
+fn create_player(
+    mut commands: Commands,
+    mut camera_settings: ResMut<crate::camera::MainCamera>,
+) {
     let player = commands.spawn((
         Transform::from_xyz(25., 10., 25.),
+        GlobalTransform::default(),
         Player {
             speed: 2.,
             noise_mul: 1.,
@@ -39,7 +43,7 @@ fn create_player(mut commands: Commands) {
         },
         Name::new("Player"),
         RigidBody::KinematicPositionBased,
-        Collider::capsule(Vec3::new(0., 0., 0.), Vec3::new(0., 2.5, 0.), 0.15),
+        Collider::capsule(Vec3::new(0., 0., 0.), Vec3::new(0., 0.5, 0.), 0.15),
         GravityScale(1.),
         Sleeping::disabled(),
         KinematicCharacterController {
@@ -58,6 +62,7 @@ fn create_player(mut commands: Commands) {
         },
         ),
     ).id();
+    camera_settings.translate_offset = Vec3::new(0., 0.45, 0.);
     camera_set_parent(&mut commands, player);
 }
 
