@@ -1,6 +1,7 @@
 mod player;
 mod bot;
 mod world;
+mod camera;
 
 use std::env::set_var;
 use bevy::{input::{common_conditions::input_toggle_active, mouse::MouseMotion}, prelude::*, render::{settings::{PowerPreference, WgpuSettings}, RenderPlugin}, window::PrimaryWindow};
@@ -37,7 +38,7 @@ fn main() {
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(RapierDebugRenderPlugin::default())
 
-        .insert_resource(Game{
+        .insert_resource(Game {
             board_size: 50,
             bot_count: 10,
             ..Default::default()
@@ -49,7 +50,7 @@ fn main() {
         .run();
 }
 
-#[derive(Resource, Default, Reflect)]
+#[derive(Resource, Default)]
 struct Game {
     map: Vec<Vec<Cell>>,
     finish_loc: Vec3,
@@ -62,4 +63,5 @@ fn teardown(mut commands: Commands, entities: Query<Entity, (Without<Camera>, Wi
     for entity in &entities {
         commands.entity(entity).despawn();
     }
+    camera::camera_remove_parent(&mut commands);
 }

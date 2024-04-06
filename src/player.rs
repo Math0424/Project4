@@ -1,8 +1,9 @@
 use bevy::{input::mouse::MouseMotion, prelude::*, window::PrimaryWindow};
 use bevy_rapier3d::{control::{CharacterAutostep, CharacterLength, KinematicCharacterController, KinematicCharacterControllerOutput}, dynamics::{GravityScale, RigidBody, Sleeping, Velocity}, geometry::Collider};
-
+use crate::camera::*;
 
 #[derive(Component, Default, Reflect)]
+#[reflect(Component)]
 pub struct Player {
     speed: f32,
     look_mul: f32,
@@ -18,19 +19,16 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
+        .add_plugins(crate::camera::PlayerCameraPlugin)
         .add_systems(Startup, create_player)
         .add_systems(PreUpdate, update_grounded)
-        .add_systems(PreUpdate, update_player)
-        .add_systems(Update, player_look);
+        .add_systems(PreUpdate, update_player);
     }
 }
 
 fn create_player(mut commands: Commands) {
-    commands.spawn((
-        Camera3dBundle {
-            transform: Transform::from_xyz(25., 10., 25.),
-            ..Default::default()
-        },
+    let player = commands.spawn((
+        Transform::from_xyz(25., 10., 25.),
         Player {
             speed: 2.,
             noise_mul: 1.,
@@ -59,7 +57,8 @@ fn create_player(mut commands: Commands) {
             ..Default::default()
         },
         ),
-    );
+    ).id();
+    camera_set_parent(&mut commands, player);
 }
 
 fn update_grounded(
@@ -119,26 +118,5 @@ fn update_player(
         final_translation += (position * time.delta_seconds()) + player.velocity;
         controller.translation = Some(final_translation);
 
-    }
-}
-
-fn player_look(
-    mut player: Query<(&mut Transform, &Player)>,
-    primary_window: Query<&Window, With<PrimaryWindow>>,
-    mut motion: EventReader<MouseMotion>,
-) {
-    if let Ok(window) = primary_window.get_single() {
-        for (mut transform, player) in &mut player {
-            let (mut yaw, mut pitch, _) = transform.rotation.to_euler(EulerRot::YXZ);
-            
-            let window_scale = window.height().min(window.width());
-            for ev in motion.read() {
-                pitch -= (player.look_mul * ev.delta.y * window_scale).to_radians();
-                yaw -= (player.look_mul * ev.delta.x * window_scale).to_radians();
-            }
-    
-            pitch = pitch.clamp(-1.54, 1.54);
-            transform.rotation = Quat::from_axis_angle(Vec3::Y, yaw) * Quat::from_axis_angle(Vec3::X, pitch);
-        }
     }
 }

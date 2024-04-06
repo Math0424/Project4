@@ -10,7 +10,6 @@ struct MapParent;
 #[derive(Component)]
 struct MapPhysicsParent;
 
-#[derive(Reflect)]
 pub struct Cell {
     height: f32,
     x: i32,
