@@ -59,9 +59,16 @@ struct Game {
     board_size: u8,
 }
 
-fn teardown(mut commands: Commands, entities: Query<Entity, (Without<Camera>, Without<Window>)>) {
+fn teardown(mut commands: Commands, 
+    entities: Query<Entity, (Without<Camera>, Without<Window>)>,
+    main_camera: Query<Entity, With<camera::MainCamera>>,
+) {
+    
+    for entity in &main_camera {
+        commands.entity(entity).remove_parent();
+    }
+
     for entity in &entities {
         commands.entity(entity).despawn();
     }
-    camera::camera_remove_parent(&mut commands);
 }
