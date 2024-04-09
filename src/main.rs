@@ -36,16 +36,16 @@ fn main() {
 
         // https://rapier.rs/docs/user_guides/bevy_plugin/getting_started_bevy/
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
-        .add_plugins(RapierDebugRenderPlugin::default())
+        //.add_plugins(RapierDebugRenderPlugin::default())
 
         .insert_resource(Game {
             board_size: 50,
             bot_count: 10,
             ..Default::default()
         })
-
+ 
         .add_plugins(
-            WorldInspectorPlugin::default().run_if(input_toggle_active(true, KeyCode::Escape)),
+            WorldInspectorPlugin::default().run_if(input_toggle_active(false, KeyCode::F12)),
         )
         .run();
 }
@@ -55,8 +55,8 @@ struct Game {
     map: Vec<Vec<Cell>>,
     finish_loc: Vec3,
     start_loc: Vec3,
-    bot_count: u8,
-    board_size: u8,
+    bot_count: usize,
+    board_size: usize,
 }
 
 fn teardown(mut commands: Commands, 

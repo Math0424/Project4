@@ -7,6 +7,7 @@ pub enum AIMode {
     Follower, // follows other bots
     Howler, // attracts other bots when spotting
     Patrol, // will pick two points to patrol between
+    Stalker, // silent enemy will only watch until another is near
 
     Overseer, // hovers above the map searching for players above the walls
 

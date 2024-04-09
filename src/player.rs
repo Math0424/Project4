@@ -1,17 +1,18 @@
-use bevy::{input::mouse::MouseMotion, prelude::*, window::PrimaryWindow};
+use bevy::{audio::{SpatialScale, Volume}, input::mouse::MouseMotion, prelude::*, window::PrimaryWindow};
 use bevy_rapier3d::{control::{CharacterAutostep, CharacterLength, KinematicCharacterController, KinematicCharacterControllerOutput}, dynamics::{GravityScale, RigidBody, Sleeping, Velocity}, geometry::Collider, parry::math::{Point, Vector}, pipeline::QueryFilter, plugin::RapierContext, rapier::geometry::Ray};
 use crate::camera::*;
+
+const PLAYERHEIGHT: f32 = 0.5;
 
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
 pub struct Player {
-    speed: f32,
-    look_mul: f32,
     noise_mul: f32,
     move_speed_mul: f32,
     jump_height_mul: f32,
     grounded: bool,
     velocity: Vec3,
+    prev_step: Vec3,
 }
 
 pub struct PlayerPlugin;
@@ -22,6 +23,7 @@ impl Plugin for PlayerPlugin {
         .add_plugins(crate::camera::PlayerCameraPlugin)
         .add_systems(Startup, create_player)
         .add_systems(PreUpdate, update_grounded)
+        .add_systems(Update, footstep_sounds)
         .add_systems(PreUpdate, update_player);
     }
 }
@@ -34,18 +36,17 @@ fn create_player(
         Transform::from_xyz(25., 10., 25.),
         GlobalTransform::default(),
         Player {
-            speed: 2.,
             noise_mul: 1.,
-            look_mul: 0.00008,
-            move_speed_mul: 1.5,
-            jump_height_mul: 0.07,
+            move_speed_mul: 1.,
+            jump_height_mul: 0.05,
             ..Default::default()
         },
         Name::new("Player"),
         RigidBody::KinematicPositionBased,
-        Collider::capsule(Vec3::new(0., 0., 0.), Vec3::new(0., 0.5, 0.), 0.15),
+        Collider::capsule(Vec3::new(0., 0., 0.), Vec3::new(0., PLAYERHEIGHT, 0.), 0.15),
         GravityScale(0.15),
         Velocity::default(),
+        SpatialListener::default(),
         Sleeping::disabled(),
         KinematicCharacterController {
             max_slope_climb_angle: 45.0_f32.to_radians(),
@@ -62,10 +63,31 @@ fn create_player(
             ..Default::default()
         },
         ),
-    ).id();
+    ).with_children(|commands| {
+        commands.spawn(
+            (
+                SpotLightBundle {
+                    transform: Transform::from_xyz(0.15, PLAYERHEIGHT - 0.1, 0.),
+                    spot_light: SpotLight {
+                        intensity: 5000.,
+                        color: Color::rgb(0.992, 0.956, 0.700),
+                        range: 15.,
+                        shadows_enabled: true,
+                        radius: 0.,
+                        outer_angle: 0.46,
+                        inner_angle: 0.4,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                crate::camera::CopyCameraRotation,
+                Name::new("Torch"),
+            )
+        );
+    }).id();
 
     for (entity, mut camera) in &mut main_camera {
-        camera.translate_offset = Vec3::new(0., 0.45, 0.);
+        camera.translate_offset = Vec3::new(0., PLAYERHEIGHT - 0.05, 0.);
         commands.entity(entity).set_parent(player);
     }
 }
@@ -84,17 +106,44 @@ fn update_grounded(
             return;
         }
         
-        if let Some((entity, toi)) = rapier_context.cast_ray(
+        if let Some((_, _)) = rapier_context.cast_ray(
             transform.translation, 
             Vec3::new(0.0, -1., 0.0), 
-            0.52, false, QueryFilter::exclude_kinematic().into(),
+            PLAYERHEIGHT + 0.005, false, QueryFilter::exclude_kinematic().into(),
         ) {
             player.grounded = true;
         } else {
             player.grounded = false;
         }
     }
+}
 
+fn footstep_sounds(
+    asset_server: Res<AssetServer>, 
+    mut commands: Commands,
+    mut query: Query<(&Transform, &mut Player)>,
+) {
+    for (pos, mut player) in &mut query {
+        if player.grounded && player.prev_step.distance(pos.translation) > 0.8 {
+            commands.spawn((
+                TransformBundle {
+                    local: pos.clone(),
+                    ..Default::default()
+                },
+                AudioBundle {
+                    source: asset_server.load("audio/player_step.ogg"),
+                    settings: PlaybackSettings {
+                        volume: Volume::new(1.),
+                        spatial: true,
+                        spatial_scale: Some(SpatialScale::new(1.)),
+                        ..PlaybackSettings::DESPAWN
+                    },
+                    ..Default::default()
+                }),
+            );
+            player.prev_step = pos.translation;
+        }
+    }
 }
 
 fn update_player(
@@ -134,11 +183,11 @@ fn update_player(
     
             if player.grounded {
                 player.velocity.y = player.velocity.y.max(0.);
-                if input.just_pressed(KeyCode::Space) {
-                    let mul = player.jump_height_mul;
-                    player.velocity += Vec3::Y * mul;
-                    player.grounded = false;
-                }
+                // if input.just_pressed(KeyCode::Space) {
+                //     let mul = player.jump_height_mul;
+                //     player.velocity += Vec3::Y * mul;
+                //     player.grounded = false;
+                // }
             } else {
                 player.velocity -= Vec3::new(0., gravity.0, 0.) * time.delta_seconds();
             }
